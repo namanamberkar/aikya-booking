@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aikya Booking - Property Reservation</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #F7F7F7 0%, #E8E8E8 100%);
+    }
+    .segmented { 
+      display: inline-flex; 
+      background: #F7F7F7; 
+      border: 2px solid #854836;
+      border-radius: 16px; 
+      padding: 6px; 
+      box-shadow: 0 4px 12px rgba(133, 72, 54, 0.15);
+    }
+    .segmented button { 
+      padding: 12px 24px; 
+      border-radius: 12px; 
+      font-weight: 600;
+      color: #854836;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .segmented .active { 
+      background: #854836; 
+      color: #F7F7F7;
+      box-shadow: 0 2px 8px rgba(133, 72, 54, 0.3); 
+      transform: translateY(-1px);
+    }
+    .segmented button:hover:not(.active) {
+      background: #FFB22C;
+      color: #000000;
+      transform: translateY(-1px);
+    }
+    .property-card {
+      background: #F7F7F7;
+      border: 2px solid #854836;
+      border-radius: 16px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .property-card:hover:not(.disabled) {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px rgba(133, 72, 54, 0.2);
+      border-color: #FFB22C;
+    }
+    .property-card.selected {
+      background: #854836;
+      color: #F7F7F7;
+      transform: translateY(-4px);
+      box-shadow: 0 8px 25px rgba(133, 72, 54, 0.3);
+    }
+    .property-card.disabled {
+      background: #E5E5E5;
+      border-color: #CCCCCC;
+      color: #999999;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .property-card.disabled::after {
+      content: "Not Available";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.8);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .custom-input {
+      background: #F7F7F7;
+      border: 2px solid #854836;
+      color: #000000;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+    }
+    .custom-input:focus {
+      border-color: #FFB22C;
+      box-shadow: 0 0 0 4px rgba(255, 178, 44, 0.1);
+      transform: translateY(-1px);
+    }
+    .btn-book {
+      background: linear-gradient(135deg, #854836 0%, #A0553F 100%);
+      color: #F7F7F7;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(133, 72, 54, 0.3);
+    }
+    .btn-book:hover {
+      background: linear-gradient(135deg, #FFB22C 0%, #E6A029 100%);
+      color: #000000;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 178, 44, 0.4);
+    }
+    .btn-cancel {
+      background: linear-gradient(135deg, #854836 0%, #A0553F 100%);
+      color: #F7F7F7;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(133, 72, 54, 0.3);
+    }
+    .btn-cancel:hover {
+      background: linear-gradient(135deg, #000000 0%, #333333 100%);
+      color: #F7F7F7;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+    .loading-spinner { animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
+    .fade-in { animation: fadeIn 0.6s ease-out; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(20px);} to {opacity:1; transform:translateY(0);} }
+    .brand-gradient {
+      background: linear-gradient(135deg, #854836 0%, #FFB22C 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  </style>
+</head>
+<body class="min-h-screen py-8 px-4">
+
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-8 fade-in">
+      <h1 class="text-5xl font-bold brand-gradient mb-2">Aikya Booking</h1>
+      <p class="text-lg" style="color: #854836;">Professional Property Management System</p>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-2xl overflow-hidden fade-in" style="background: #F7F7F7; border: 3px solid #854836;">
+      
+      <div class="flex justify-center py-8 bg-gradient-to-r from-transparent via-white to-transparent" style="background: linear-gradient(90deg, transparent, rgba(255,178,44,0.1), transparent);">
+        <div class="segmented" role="tablist" aria-label="Mode toggle">
+          <button id="modeBook" class="active" type="button" role="tab" aria-selected="true">BOOK</button>
+          <button id="modeCancel" type="button" role="tab" aria-selected="false">CANCEL</button>
+        </div>
+      </div>
+
+      <div class="px-8 pb-8">
+        <form id="reservationForm" class="space-y-8">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <label for="checkInDate" class="block text-sm font-semibold" style="color: #854836;">Check-in Date</label>
+              <input type="date" id="checkInDate" name="checkInDate" required class="custom-input w-full p-4 focus:outline-none transition duration-300">
+            </div>
+            <div class="space-y-2">
+              <label for="checkOutDate" class="block text-sm font-semibold" style="color: #854836;">Check-out Date</label>
+              <input type="date" id="checkOutDate" name="checkOutDate" required class="custom-input w-full p-4 focus:outline-none transition duration-300">
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xl font-bold" style="color: #000000;">Select Property</h3>
+              <div id="availabilityStatus" class="text-sm font-medium" style="color: #854836;">Select dates to check availability</div>
+            </div>
+            <div id="propertyGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
+            <input type="hidden" id="selectedProperty" name="property" required>
+          </div>
+
+          <div id="guestInfoSection" class="space-y-6">
+            <h3 class="text-xl font-bold" style="color: #000000;">Guest Information</h3>
+            <div class="space-y-2">
+              <label for="guestName" class="block text-sm font-semibold" style="color: #854836;">Guest Name</label>
+              <input type="text" id="guestName" name="guestName" required class="custom-input w-full p-4 focus:outline-none transition duration-300" placeholder="Enter guest name">
+            </div>
+            <div id="bookingOnlyFields" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-2">
+                <label for="numberOfGuests" class="block text-sm font-semibold" style="color: #854836;">Number of Guests</label>
+                <input type="number" id="numberOfGuests" name="numberOfGuests" required min="1" max="20" class="custom-input w-full p-4 focus:outline-none transition duration-300" placeholder="e.g., 2">
+              </div>
+              <div class="space-y-2">
+                <label for="amountPaid" class="block text-sm font-semibold" style="color: #854836;">Amount Paid</label>
+                <input type="number" id="amountPaid" name="amountPaid" required min="0" step="0.01" class="custom-input w-full p-4 focus:outline-none transition duration-300" placeholder="e.g., 2000">
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-6">
+            <button id="submitBtn" type="submit" class="btn-book w-full py-4 px-6 text-lg font-bold focus:outline-none focus:ring-4 focus:ring-opacity-50 transition duration-300">
+              <span id="submitText">Book Reservation</span>
+              <div id="loadingSpinner" class="hidden inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full loading-spinner ml-2"></div>
+            </button>
+          </div>
+        </form>
+        <div id="messageBox" class="mt-6 text-center font-medium p-4 rounded-2xl hidden transition-all duration-300"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ENDPOINT = '/api'; // 👈 replace with Apps Script URL
+
+    const PROPERTIES = ['101','102','201','202','302','Kadri 2BHK','Kadri 3BHK',
+      'Villa 2BHK','Villa 1BHK','Falnir 2BHK','R401','R402','Palace'];
+
+    let mode = 'book';
+    let selectedProperty = null;
+    const modeBookBtn = document.getElementById('modeBook');
+    const modeCancelBtn = document.getElementById('modeCancel');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const messageBox = document.getElementById('messageBox');
+    const reservationForm = document.getElementById('reservationForm');
+    const propertyGrid = document.getElementById('propertyGrid');
+    const selectedPropertyInput = document.getElementById('selectedProperty');
+    const availabilityStatus = document.getElementById('availabilityStatus');
+    const guestNameInput = document.getElementById('guestName');
+    const numGuestsInput = document.getElementById('numberOfGuests');
+    const amountPaidInput = document.getElementById('amountPaid');
+    const checkInInput = document.getElementById('checkInDate');
+    const checkOutInput = document.getElementById('checkOutDate');
+
+    generatePropertyGrid();
+    setMinimumDates();
+    setActiveMode('book');
+
+    function generatePropertyGrid() {
+      propertyGrid.innerHTML = '';
+      PROPERTIES.forEach(property => {
+        const card = document.createElement('div');
+        card.className = 'property-card p-4 text-center';
+        card.dataset.property = property;
+        card.innerHTML = `<div class="font-bold text-sm mb-1">${property}</div><div class="text-xs opacity-75">Available</div>`;
+        card.addEventListener('click', () => selectProperty(property, card));
+        propertyGrid.appendChild(card);
+      });
+    }
+    function selectProperty(property, cardElement) {
+      if (cardElement.classList.contains('disabled')) return;
+      document.querySelectorAll('.property-card').forEach(c => c.classList.remove('selected'));
+      cardElement.classList.add('selected');
+      selectedProperty = property;
+      selectedPropertyInput.value = property;
+    }
+    function setMinimumDates() {
+      const today = new Date().toISOString().split('T')[0];
+      checkInInput.min = today; checkOutInput.min = today;
+    }
+
+    async function checkAvailability() {
+      const checkIn = checkInInput.value;
+      const checkOut = checkOutInput.value;
+      if (!checkIn || !checkOut) { availabilityStatus.textContent='Select dates to check availability'; resetPropertyAvailability(); return; }
+      if (new Date(checkOut) < new Date(checkIn)) { availabilityStatus.textContent='Check-out must be after check-in'; resetPropertyAvailability(); return; }
+      availabilityStatus.textContent='Checking availability...';
+      try {
+        const res = await fetch(`${ENDPOINT}?action=availabilityRange&from=${checkIn}&to=${checkOut}`);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        let available = [], unavailable = [];
+        if (mode === 'book') {
+          available = data.available_rooms || [];
+          unavailable = data.unavailable_rooms || [];
+        } else { 
+          // In cancel mode, invert logic: show only booked properties
+          available = data.unavailable_rooms || [];
+          unavailable = data.available_rooms || [];
+        }
+
+        document.querySelectorAll('.property-card').forEach(card => {
+          const property = card.dataset.property;
+          if (available.includes(property)) {
+            card.classList.remove('disabled'); card.querySelector('.text-xs').textContent = mode==='book'?'Available':'Booked';
+          } else {
+            card.classList.add('disabled'); card.classList.remove('selected');
+            card.querySelector('.text-xs').textContent = mode==='book'?'Booked':'Available';
+            if (selectedProperty===property) { selectedProperty=null; selectedPropertyInput.value=''; }
+          }
+        });
+        availabilityStatus.textContent = mode==='book' ? `${available.length} properties available` : `${available.length} properties booked`;
+      } catch(err){ console.error(err); availabilityStatus.textContent='Error checking availability'; }
+    }
+    function resetPropertyAvailability() {
+      document.querySelectorAll('.property-card').forEach(c=>{c.classList.remove('disabled','selected');c.querySelector('.text-xs').textContent='Available';});
+      selectedProperty=null; selectedPropertyInput.value='';
+    }
+    checkInInput.addEventListener('change', function() {
+      checkOutInput.min=this.value;
+      if (checkOutInput.value && checkOutInput.value<=this.value) {
+        const nd=new Date(this.value); nd.setDate(nd.getDate()+1); checkOutInput.value=nd.toISOString().split('T')[0];
+      }
+      checkAvailability();
+    });
+    checkOutInput.addEventListener('change', checkAvailability);
+
+    function setActiveMode(newMode) {
+      mode=newMode; const bookingOnlyFields=document.getElementById('bookingOnlyFields');
+      if (mode==='book') { modeBookBtn.classList.add('active'); modeCancelBtn.classList.remove('active');
+        submitText.textContent='Book Reservation'; submitBtn.className='btn-book w-full py-4 px-6 text-lg font-bold';
+        bookingOnlyFields.style.display='grid'; guestNameInput.required=true; numGuestsInput.required=true; amountPaidInput.required=true;
+      } else { modeBookBtn.classList.remove('active'); modeCancelBtn.classList.add('active');
+        submitText.textContent='Cancel Reservation'; submitBtn.className='btn-cancel w-full py-4 px-6 text-lg font-bold';
+        bookingOnlyFields.style.display='none'; guestNameInput.required=true; numGuestsInput.required=false; amountPaidInput.required=false;
+        numGuestsInput.value=''; amountPaidInput.value='';
+      }
+      hideMessage();
+      checkAvailability();
+    }
+    modeBookBtn.addEventListener('click',()=>setActiveMode('book'));
+    modeCancelBtn.addEventListener('click',()=>setActiveMode('cancel'));
+
+    reservationForm.addEventListener('submit',async function(ev){
+      ev.preventDefault();
+      if (!selectedProperty){showMessage('Please select a property.','error');return;}
+      const f=ev.target;
+      const payload={guestName:f.guestName.value,checkInDate:f.checkInDate.value,checkOutDate:f.checkOutDate.value,property:selectedProperty,noOfGuests:parseInt(f.numberOfGuests.value)||undefined,amountPaid:parseFloat(f.amountPaid.value)||undefined,action:mode};
+      if (new Date(payload.checkOutDate)<new Date(payload.checkInDate)){showMessage('Check-out must be after check-in','error');return;}
+      submitBtn.disabled=true; submitText.textContent=mode==='cancel'?'Processing cancellation...':'Processing booking...'; loadingSpinner.classList.remove('hidden');
+      try {
+        const res=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});
+        const result=await res.json();
+        if (result.success){showMessage(result.message,'success'); setTimeout(()=>{reservationForm.reset();resetPropertyAvailability();setMinimumDates();},2000);}
+        else {showMessage((mode==='cancel'?'Cancellation':'Booking')+' failed: '+(result.error||result.message||'Unknown error'),'error');}
+      } catch(err){console.error(err);showMessage(`Connection error: ${err.message}`,'error');}
+      finally{submitBtn.disabled=false; submitText.textContent=mode==='cancel'?'Cancel Reservation':'Book Reservation'; loadingSpinner.classList.add('hidden');}
+    });
+    function showMessage(text,type){
+      messageBox.textContent=text;
+      messageBox.classList.remove('hidden');
+      if(type==='success'){
+        messageBox.style.backgroundColor='#D1FAE5';
+        messageBox.style.color='#065F46';
+        messageBox.style.border='2px solid #065F46';
+      } else {
+        messageBox.style.backgroundColor='#FEE2E2';
+        messageBox.style.color='#991B1B';
+        messageBox.style.border='2px solid #991B1B';
+      }
+    }
+    function hideMessage(){ messageBox.classList.add('hidden'); }
+  </script>
+</body>
+</html>
